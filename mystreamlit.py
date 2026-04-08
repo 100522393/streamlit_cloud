@@ -1,16 +1,16 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import joblib
+import streamlit as st  # Librería para crear la app web
+import pandas as pd     # Manejo de datos en tablas
+import numpy as np      # Cálculos numéricos
+import joblib           # Cargar el modelo entrenado
 
 # -------------------------------------------------
 # CONFIGURACIÓN GENERAL
 # -------------------------------------------------
 st.set_page_config(
-    page_title="Predicción de Depósitos",
-    page_icon="🏦",
-    layout="wide",
-    initial_sidebar_state="collapsed",
+    page_title="Predicción de Depósitos",  # Título de la pestaña
+    page_icon="🏦",                        # Icono de la app
+    layout="wide",                        # Layout ancho
+    initial_sidebar_state="collapsed",    # Sidebar oculto por defecto
 )
 
 # -------------------------------------------------
@@ -158,7 +158,7 @@ st.markdown(
     }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True,  # Permite usar HTML y CSS
 )
 
 # -------------------------------------------------
@@ -175,101 +175,101 @@ st.markdown(
         </p>
     </div>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True,  # Renderiza HTML personalizado
 )
 
 # -------------------------------------------------
 # FEATURE ENGINEERING
 # -------------------------------------------------
 def feature_engineering(df):
-    df_proc = df.copy()
-    df_proc['contactado_antes'] = np.where(df_proc['pdays'] == -1, 0, 1)
-    df_proc['pdays'] = df_proc['pdays'].replace(-1, np.nan)
-    df_proc['contact_unknown'] = (df_proc['contact'] == 'unknown').astype(int)
-    df_proc['poutcome'] = df_proc['poutcome'].fillna('no_contact')
-    df_proc['education'] = df_proc['education'].replace([None], np.nan)
-    binary_map = {'no': 0, 'yes': 1}
+    df_proc = df.copy()  # Copia del dataframe original
+    df_proc['contactado_antes'] = np.where(df_proc['pdays'] == -1, 0, 1)  # Si ha sido contactado antes
+    df_proc['pdays'] = df_proc['pdays'].replace(-1, np.nan)  # Reemplaza -1 por NaN
+    df_proc['contact_unknown'] = (df_proc['contact'] == 'unknown').astype(int)  # Marca contactos desconocidos
+    df_proc['poutcome'] = df_proc['poutcome'].fillna('no_contact')  # Rellena valores nulos
+    df_proc['education'] = df_proc['education'].replace([None], np.nan)  # Limpia educación
+    binary_map = {'no': 0, 'yes': 1}  # Mapa binario
     for col in ['housing', 'loan']:
-        df_proc[col] = df_proc[col].map(binary_map)
-    df_proc['balance'] = np.sign(df_proc['balance']) * np.log1p(np.abs(df_proc['balance']))
+        df_proc[col] = df_proc[col].map(binary_map)  # Convierte a 0/1
+    df_proc['balance'] = np.sign(df_proc['balance']) * np.log1p(np.abs(df_proc['balance']))  # Transformación logarítmica
     if 'day' in df_proc.columns:
-        df_proc = df_proc.drop(columns=['day'])
-    return df_proc
+        df_proc = df_proc.drop(columns=['day'])  # Elimina columna no usada
+    return df_proc  # Devuelve datos procesados
 
 # -------------------------------------------------
 # CARGA DEL MODELO
 # -------------------------------------------------
-@st.cache_resource
+@st.cache_resource  # Cachea el modelo para no cargarlo varias veces
 def cargar_modelo():
-    return joblib.load('modelo_final.pkl')
+    return joblib.load('modelo_final.pkl')  # Carga el modelo desde archivo
 
 try:
-    modelo = cargar_modelo()
+    modelo = cargar_modelo()  # Intenta cargar el modelo
 except Exception as e:
-    st.error(f"Error al cargar el modelo: {e}")
-    st.stop()
+    st.error(f"Error al cargar el modelo: {e}")  # Muestra error
+    st.stop()  # Detiene la app si falla
 
 # -------------------------------------------------
 # FORMULARIO
 # -------------------------------------------------
-col1, col2, col3 = st.columns(3, gap="large")
+col1, col2, col3 = st.columns(3, gap="large")  # Crea 3 columnas
 
 with col1:
     st.markdown('<div class="col-card"><div class="sec-title">Perfil del cliente</div><div class="sec-desc">Datos demográficos y situación general.</div></div>', unsafe_allow_html=True)
-    age       = st.number_input("Edad", min_value=18, max_value=100, value=35)
-    job       = st.selectbox("Trabajo", ['management','technician','entrepreneur','blue-collar','unknown','retired','admin.','services','self-employed','unemployed','housemaid','student'])
-    marital   = st.selectbox("Estado civil", ['married','single','divorced'])
-    education = st.selectbox("Educación", ['tertiary','secondary','unknown','primary',None], format_func=lambda x: 'Sin dato' if x is None else x)
+    age       = st.number_input("Edad", min_value=18, max_value=100, value=35)  # Edad
+    job       = st.selectbox("Trabajo", ['management','technician','entrepreneur','blue-collar','unknown','retired','admin.','services','self-employed','unemployed','housemaid','student'])  # Tipo de trabajo
+    marital   = st.selectbox("Estado civil", ['married','single','divorced'])  # Estado civil
+    education = st.selectbox("Educación", ['tertiary','secondary','unknown','primary',None], format_func=lambda x: 'Sin dato' if x is None else x)  # Nivel educativo
 
 with col2:
     st.markdown('<div class="col-card"><div class="sec-title">Situación financiera</div><div class="sec-desc">Información económica y productos activos.</div></div>', unsafe_allow_html=True)
-    balance  = st.number_input("Saldo anual medio (€)", value=1500)
-    housing  = st.selectbox("¿Tiene hipoteca?", ['yes','no'])
-    loan     = st.selectbox("¿Tiene préstamo personal?", ['no','yes'])
-    contact  = st.selectbox("Medio de contacto", ['cellular','unknown','telephone'])
+    balance  = st.number_input("Saldo anual medio (€)", value=1500)  # Balance
+    housing  = st.selectbox("¿Tiene hipoteca?", ['yes','no'])  # Hipoteca
+    loan     = st.selectbox("¿Tiene préstamo personal?", ['no','yes'])  # Préstamo
+    contact  = st.selectbox("Medio de contacto", ['cellular','unknown','telephone'])  # Tipo de contacto
 
 with col3:
     st.markdown('<div class="col-card"><div class="sec-title">Historial de campaña</div><div class="sec-desc">Últimos contactos y resultados anteriores.</div></div>', unsafe_allow_html=True)
-    month    = st.selectbox("Mes", ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'])
-    duration = st.number_input("Duración última llamada (seg)", min_value=0, value=120)
-    campaign = st.number_input("Nº contactos esta campaña", min_value=1, value=2)
-    pdays    = st.number_input("Días desde campaña anterior", min_value=-1, value=-1)
-    previous = st.number_input("Nº contactos previos", min_value=0, value=0)
-    poutcome = st.selectbox("Resultado campaña anterior", ['unknown','failure','other','success',None], format_func=lambda x: 'Sin dato' if x is None else x)
+    month    = st.selectbox("Mes", ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'])  # Mes
+    duration = st.number_input("Duración última llamada (seg)", min_value=0, value=120)  # Duración llamada
+    campaign = st.number_input("Nº contactos esta campaña", min_value=1, value=2)  # Nº contactos
+    pdays    = st.number_input("Días desde campaña anterior", min_value=-1, value=-1)  # Días desde contacto
+    previous = st.number_input("Nº contactos previos", min_value=0, value=0)  # Contactos previos
+    poutcome = st.selectbox("Resultado campaña anterior", ['unknown','failure','other','success',None], format_func=lambda x: 'Sin dato' if x is None else x)  # Resultado previo
 
-day = 15
+day = 15  # Día fijo (no se pide al usuario)
 
 # -------------------------------------------------
 # BOTÓN
 # -------------------------------------------------
-predict = st.button("Realizar predicción 🚀")
+predict = st.button("Realizar predicción 🚀")  # Botón de predicción
 
 # -------------------------------------------------
 # RESULTADO
 # -------------------------------------------------
-if predict:
+if predict:  # Si se pulsa el botón
     datos_cliente = pd.DataFrame([{
         'age': age, 'job': job, 'marital': marital, 'education': education,
         'balance': balance, 'housing': housing, 'loan': loan, 'contact': contact,
         'day': day, 'month': month, 'duration': duration, 'campaign': campaign,
         'pdays': pdays, 'previous': previous, 'poutcome': poutcome,
-    }])
+    }])  # Crea dataframe con los datos introducidos
 
-    datos_proc = feature_engineering(datos_cliente)
-    prediccion = modelo.predict(datos_proc)[0]
+    datos_proc = feature_engineering(datos_cliente)  # Procesa los datos
+    prediccion = modelo.predict(datos_proc)[0]  # Realiza la predicción
 
     st.markdown("<div class='result-card'>", unsafe_allow_html=True)
     st.markdown("### Resultado de la predicción")
 
-    if prediccion == 1 or prediccion == 'yes':
+    if prediccion == 1 or prediccion == 'yes':  # Si predice positivo
         st.success("✅ PREDICCIÓN: SÍ CONTRATARÁ")
         st.write("El modelo SVM estima que este cliente **sí contratará** el depósito a plazo fijo.")
-    else:
+    else:  # Si predice negativo
         st.error("❌ PREDICCIÓN: NO CONTRATARÁ")
         st.write("El modelo SVM estima que este cliente **no contratará** el depósito a plazo fijo.")
 
     with st.expander("Ver datos procesados usados por el modelo"):
-        st.dataframe(datos_proc, use_container_width=True)
+        st.dataframe(datos_proc, use_container_width=True)  # Muestra datos procesados
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -278,5 +278,5 @@ if predict:
 # -------------------------------------------------
 st.markdown(
     '<div class="footer-note">Consejo: puedes desplegar esta app con Streamlit Cloud, Render o Hugging Face Spaces.</div>',
-    unsafe_allow_html=True,
+    unsafe_allow_html=True,  # Muestra nota final
 )
